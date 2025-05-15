@@ -40,4 +40,12 @@ code or trivial
 
 ehhh, stabs files are not supported on my gcc version. apparently its been outdated for a while
 
+> challenge
+
+https://en.wikipedia.org/wiki/VGA_text_mode
+
+cga text mode uses two bytes for each char. lewer byte is the actual char. higher byte dicates the way it renders, like color, blinking, and stuff.
+
+in console.c:cga_putc.c, add a custom global variable called cga_color. binary or this value to the current char to achieve coloring
+
 --- Leoh
