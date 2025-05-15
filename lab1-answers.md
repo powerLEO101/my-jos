@@ -32,8 +32,12 @@ Kernel is loaded at the address. I had some trouble setting the breakpoint becau
 
 paging is enabled obviously. so at 0x00100000 and 0xf0100000, both have the code for the kernel
 
-> Exercise 8, 9, 10
+> Exercise 8, 9, 10, 11
 
 code or trivial
+
+> Exercise 12
+
+ehhh, stabs files are not supported on my gcc version. apparently its been outdated for a while
 
 --- Leoh
