@@ -13,6 +13,7 @@
 
 #define CMDBUF_SIZE	80	// enough for one VGA text line
 
+extern uint16_t cga_color;
 
 struct Command {
 	const char *name;
@@ -123,7 +124,9 @@ monitor(struct Trapframe *tf)
 
 
 	while (1) {
+		cga_color = 0x0b00;
 		buf = readline("K> ");
+		cga_color = 0x0000;
 		if (buf != NULL)
 			if (runcmd(buf, tf) < 0)
 				break;
