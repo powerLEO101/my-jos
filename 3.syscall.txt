@@ -1,0 +1,4 @@
+modification to syscall is very similar to weensyOS
+printing traces of syscall is pretty obvious
+
+--- Leoh
