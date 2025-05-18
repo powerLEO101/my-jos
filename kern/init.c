@@ -25,6 +25,7 @@ i386_init(void)
 	cons_init();
 
 	cprintf("\n6828 decimal is %o octal!\n", 6828);
+	cprintf("%p %p\n", bootstacktop, end);
 
 	// Lab 2 memory management initialization functions
 	mem_init();

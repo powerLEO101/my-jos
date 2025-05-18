@@ -95,6 +95,7 @@ boot_alloc(uint32_t n)
 	if (!nextfree) {
 		extern char end[];
 		nextfree = ROUNDUP((char *) end, PGSIZE);
+		// NOTE like in xv6, for bootstrapping memory setup, the memory immediately after kernel is temporarily used
 	}
 
 	// Allocate a chunk large enough to hold 'n' bytes, then update
@@ -102,8 +103,18 @@ boot_alloc(uint32_t n)
 	// to a multiple of PGSIZE.
 	//
 	// LAB 2: Your code here.
+	
+	// NOTE only 4 MB of memory is mapped for kernel to use
+	// the constraint of 4 MB is hard coded here
+	// NOTE this part of the code lacks a lot of check, but since its kernel itself calling I assume everyone is good
+	if ((void *) ROUNDUP(nextfree + n, PGSIZE) > KADDR(0x400000))
+		panic("boot_alloc: out of memory");
 
-	return NULL;
+	result = nextfree;
+	if (n != 0)
+		nextfree = ROUNDUP(nextfree + n, PGSIZE);
+
+	return result;
 }
 
 // Set up a two-level page table:
@@ -125,7 +136,7 @@ mem_init(void)
 	i386_detect_memory();
 
 	// Remove this line when you're ready to test this function.
-	panic("mem_init: This function is not finished\n");
+	// panic("mem_init: This function is not finished\n");
 
 	//////////////////////////////////////////////////////////////////////
 	// create initial page directory.
@@ -148,7 +159,9 @@ mem_init(void)
 	// array.  'npages' is the number of physical pages in memory.  Use memset
 	// to initialize all fields of each struct PageInfo to 0.
 	// Your code goes here:
-
+	
+	pages = (struct PageInfo *) boot_alloc(npages * sizeof(struct PageInfo));
+	memset(pages, 0, npages * sizeof(struct PageInfo));
 
 	//////////////////////////////////////////////////////////////////////
 	// Now that we've allocated the initial kernel data structures, we set
@@ -251,11 +264,18 @@ page_init(void)
 	// Change the code to reflect this.
 	// NB: DO NOT actually touch the physical memory corresponding to
 	// free pages!
+
+	size_t kernel_used = PADDR(boot_alloc(0));
 	size_t i;
 	for (i = 0; i < npages; i++) {
-		pages[i].pp_ref = 0;
-		pages[i].pp_link = page_free_list;
-		page_free_list = &pages[i];
+		if (i == 0 || (PGNUM(IOPHYSMEM) <= i && i < PGNUM(kernel_used))) {
+			pages[i].pp_ref = 1;
+			// NOTE in my understanding, not free pages do not participate in the page_free_list, right?
+		} else {
+			pages[i].pp_ref = 0;
+			pages[i].pp_link = page_free_list;
+			page_free_list = &pages[i];
+		}
 	}
 }
 
@@ -274,8 +294,17 @@ page_init(void)
 struct PageInfo *
 page_alloc(int alloc_flags)
 {
-	// Fill this function in
-	return 0;
+	if (!page_free_list)
+		return NULL;
+	struct PageInfo *ret = page_free_list;
+	page_free_list = page_free_list->pp_link;
+	ret->pp_link = NULL;
+	if (alloc_flags & ALLOC_ZERO)
+		memset(page2kva(ret), 0, PGSIZE);
+	// NOTE the use of page2kva here is suspicious, maybe something is done later about kernel page table
+	// or the limit of memory is limited by the placement of KERNBASE since its so high up? we only have like 256MB left
+	// shit... that seems to be what it is --- it's mentioned in lab1 --- that's very unoptimal
+	return ret;
 }
 
 //
@@ -288,6 +317,10 @@ page_free(struct PageInfo *pp)
 	// Fill this function in
 	// Hint: You may want to panic if pp->pp_ref is nonzero or
 	// pp->pp_link is not NULL.
+	if (pp->pp_ref != 0)
+		panic("page_free: pp_ref is not zero");
+	pp->pp_link = page_free_list;
+	page_free_list = pp;
 }
 
 //
