@@ -62,6 +62,7 @@ i386_detect_memory(void)
 // --------------------------------------------------------------
 
 static void boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm);
+static void boot_map_region_ps(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm);
 static void check_page_free_list(bool only_low_memory);
 static void check_page_alloc(void);
 static void check_kern_pgdir(void);
@@ -209,8 +210,7 @@ mem_init(void)
 	// we just set up the mapping anyway.
 	// Permissions: kernel RW, user NONE
 	// Your code goes here:
-	boot_map_region(kern_pgdir, KERNBASE, 0x10000000 - PGSIZE, 0, PTE_P | PTE_W);
-	// NOTE hardcoded, also we are being sneaky by not mapping the very last page, because we dont want to handle uint overflow
+	boot_map_region_ps(kern_pgdir, KERNBASE, 0x10000000, 0, PTE_P | PTE_W);
 
 	// Check that the initial page directory has been set up correctly.
 	check_kern_pgdir();
@@ -394,10 +394,32 @@ boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm
 	assert(pa % PGSIZE == 0);
 	assert(va % PGSIZE == 0);
 	assert(size % PGSIZE == 0);
+
 	pte_t *r;
-	for (uintptr_t addr = va; addr < va + size; addr += PGSIZE, pa += PGSIZE)
-		if ((r = pgdir_walk(pgdir, (void *) addr, true)) != NULL)
+	// we use while to potentially prevent va + size overflow uint32
+	while (size) {
+		if ((r = pgdir_walk(pgdir, (void *) va, true)) != NULL)
 			*r = pa | perm | PTE_P;
+		size -= PGSIZE;
+		va += PGSIZE;
+		pa += PGSIZE;
+	}
+}
+
+static void
+boot_map_region_ps(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm)
+{
+	// NOTE an optimization to use PTE_SE to use one page dir entry to map the entire dir
+	assert(pa % PTSIZE == 0);
+	assert(va % PTSIZE == 0);
+	assert(size % PTSIZE == 0);
+	while (size) {
+		pgdir[PDX(va)] = PTE_ADDR(pa) | perm | PTE_P | PTE_PS;
+		// cprintf("va = %p, pgdir[%p] = %p\n", va, PDX(va), pa | perm | PTE_P | PTE_PS);
+		va += PTSIZE;
+		pa += PTSIZE;
+		size -= PTSIZE;
+	}
 }
 
 //
@@ -707,6 +729,9 @@ check_va2pa(pde_t *pgdir, uintptr_t va)
 	pgdir = &pgdir[PDX(va)];
 	if (!(*pgdir & PTE_P))
 		return ~0;
+	// NOTE add special case for pig pages
+	if ((*pgdir & PTE_P) && (*pgdir & PTE_PS))
+		return PTE_ADDR(*pgdir) + (PTX(va) << PGSHIFT);
 	p = (pte_t*) KADDR(PTE_ADDR(*pgdir));
 	if (!(p[PTX(va)] & PTE_P))
 		return ~0;
