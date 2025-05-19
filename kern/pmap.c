@@ -185,6 +185,7 @@ mem_init(void)
 	//      (ie. perm = PTE_U | PTE_P)
 	//    - pages itself -- kernel RW, user NONE
 	// Your code goes here:
+	boot_map_region(kern_pgdir, UPAGES, ROUNDUP(npages * sizeof(struct PageInfo), PGSIZE), PADDR(pages), PTE_P | PTE_U);
 
 	//////////////////////////////////////////////////////////////////////
 	// Use the physical memory that 'bootstack' refers to as the kernel
@@ -197,6 +198,8 @@ mem_init(void)
 	//       overwrite memory.  Known as a "guard page".
 	//     Permissions: kernel RW, user NONE
 	// Your code goes here:
+	boot_map_region(kern_pgdir, KSTACKTOP - KSTKSIZE, KSTKSIZE, (physaddr_t) PADDR(bootstack), PTE_P | PTE_W);
+	// NOTE [KSTACKTOP-PTSIZE, KSTACKTOP-KSTKSIZE) is just not mapped
 
 	//////////////////////////////////////////////////////////////////////
 	// Map all of physical memory at KERNBASE.
@@ -206,6 +209,8 @@ mem_init(void)
 	// we just set up the mapping anyway.
 	// Permissions: kernel RW, user NONE
 	// Your code goes here:
+	boot_map_region(kern_pgdir, KERNBASE, 0x10000000 - PGSIZE, 0, PTE_P | PTE_W);
+	// NOTE hardcoded, also we are being sneaky by not mapping the very last page, because we dont want to handle uint overflow
 
 	// Check that the initial page directory has been set up correctly.
 	check_kern_pgdir();
@@ -389,8 +394,10 @@ boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm
 	assert(pa % PGSIZE == 0);
 	assert(va % PGSIZE == 0);
 	assert(size % PGSIZE == 0);
+	pte_t *r;
 	for (uintptr_t addr = va; addr < va + size; addr += PGSIZE, pa += PGSIZE)
-		*pgdir_walk(pgdir, (void *) addr, true) = pa | perm | PTE_P;
+		if ((r = pgdir_walk(pgdir, (void *) addr, true)) != NULL)
+			*r = pa | perm | PTE_P;
 }
 
 //
