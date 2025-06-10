@@ -25,6 +25,9 @@
 	.type name, @function;	/* symbol type is function */		\
 	.align 2;		/* align function definition */		\
 	name:			/* function starts here */		\
+	.data; \
+	.long name; \
+	.text; \
 	pushl $(num);							\
 	jmp _alltraps
 
@@ -37,19 +40,56 @@
 	.type name, @function;						\
 	.align 2;							\
 	name:								\
+	.data; \
+	.long name; \
+	.text; \
 	pushl $0;							\
 	pushl $(num);							\
 	jmp _alltraps
 
+.data
+	.globl trap_handlers
+trap_handlers:
 .text
 
 /*
  * Lab 3: Your code here for generating entry points for the different traps.
  */
 
-
+TRAPHANDLER_NOEC(T_DIVIDE_HANDLER, T_DIVIDE)
+TRAPHANDLER_NOEC(T_DEBUG_HANDLER, T_DEBUG)
+TRAPHANDLER_NOEC(T_NMI_HANDLER, T_NMI)
+TRAPHANDLER_NOEC(T_BRKPT_HANDLER, T_BRKPT)
+TRAPHANDLER_NOEC(T_OFLOW_HANDLER, T_OFLOW)
+TRAPHANDLER_NOEC(T_BOUND_HANDLER, T_BOUND)
+TRAPHANDLER_NOEC(T_ILLOP_HANDLER, T_ILLOP)
+TRAPHANDLER_NOEC(T_DEVICE_HANDLER, T_DEVICE)
+TRAPHANDLER(T_DBLFLT_HANDLER, T_DBLFLT)
+TRAPHANDLER(T_COPROC_HANDLER, T_COPROC)
+TRAPHANDLER(T_TSS_HANDLER, T_TSS)
+TRAPHANDLER(T_SEGNP_HANDLER, T_SEGNP)
+TRAPHANDLER(T_STACK_HANDLER, T_STACK)
+TRAPHANDLER(T_GPFLT_HANDLER, T_GPFLT)
+TRAPHANDLER(T_PGFLT_HANDLER, T_PGFLT)
+TRAPHANDLER(T_RES_HANDLER, T_RES)
+TRAPHANDLER_NOEC(T_FPERR_HANDLER, T_FPERR)
+TRAPHANDLER(T_ALIGN_HANDLER, T_ALIGN)
+TRAPHANDLER_NOEC(T_MCHK_HANDLER, T_MCHK)
+TRAPHANDLER_NOEC(T_SIMDERR_HANDLER, T_SIMDERR)
+TRAPHANDLER_NOEC(T_SYSCALL_HANDLER, T_SYSCALL)
 
 /*
  * Lab 3: Your code here for _alltraps
  */
 
+	.globl _alltraps
+_alltraps:
+	pushl %ds
+	pushl %es
+	pushal
+	movw $GD_KD, %ax
+	movw %ax, %ds
+	movw %ax, %es
+	/* are these two move neccesary? since they refer to the same segment anyway. does privilege matter for segments other than cs? */
+	pushl %esp
+	call trap

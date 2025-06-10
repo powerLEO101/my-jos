@@ -27,8 +27,9 @@ struct Command {
 static struct Command commands[] = {
 	{ "help", "Display this list of commands", mon_help },
 	{ "kerninfo", "Display information about the kernel", mon_kerninfo },
-	{ "backtrace", "Display the backtrace of the current stack", mon_backtrace},
-	{ "showmapping", "Show virtual memory mapping of [va_start, va_end) of kernel (currently)", mon_showmapping},
+	{ "backtrace", "Display the backtrace of the current stack", mon_backtrace },
+	{ "showmapping", "Show virtual memory mapping of [va_start, va_end) of kernel (currently)", mon_showmapping },
+	{ "step", "Single step current program", mon_step }
 };
 
 /***** Implementations of basic kernel monitor commands *****/
@@ -69,6 +70,17 @@ mon_backtrace(int argc, char **argv, struct Trapframe *tf)
 		stack = (uint32_t *) stack[0];
 	}
 	return 0;
+}
+
+int
+mon_step(int argc, char **argv, struct Trapframe *tf)
+{
+	if (!tf) {
+		cprintf("Cannot single step without user env present!\n");
+		return 0;
+	}
+	tf->tf_eflags |= FL_TF;
+	return -1; // ret < 0 exits terminal
 }
 
 static void
