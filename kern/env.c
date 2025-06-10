@@ -366,7 +366,7 @@ load_icode(struct Env *e, uint8_t *binary)
 		region_alloc(e, (void *) ph->p_va, ph->p_memsz);
 		// NOTE here we are dealing with user virtual memory
 		memcpy((void *) ph->p_va, binary + ph->p_offset, ph->p_filesz);
-		memset(binary + ph->p_offset + ph->p_filesz, ph->p_memsz - ph->p_filesz, 0);
+		memset((void *) ph->p_va + ph->p_filesz, 0, ph->p_memsz - ph->p_filesz);
 	}
 	e->env_tf.tf_eip = eh->e_entry;
 
