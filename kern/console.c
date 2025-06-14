@@ -161,6 +161,7 @@ cga_init(void)
 
 
 
+uint16_t cga_color;
 static void
 cga_putc(int c)
 {
@@ -189,7 +190,7 @@ cga_putc(int c)
 		cons_putc(' ');
 		break;
 	default:
-		crt_buf[crt_pos++] = c;		/* write the character */
+		crt_buf[crt_pos++] = cga_color | c;		/* write the character */
 		break;
 	}
 
