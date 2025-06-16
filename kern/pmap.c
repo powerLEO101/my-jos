@@ -281,7 +281,11 @@ mem_init_mp(void)
 	//     Permissions: kernel RW, user NONE
 	//
 	// LAB 4: Your code here:
+	int i;
 
+	for (i = 0; i < NCPU; i++) {
+		boot_map_region(kern_pgdir, KSTACKTOP - KSTKSIZE - i * (KSTKSIZE + KSTKGAP), KSTKSIZE, (physaddr_t) PADDR(percpu_kstacks[i]), PTE_P | PTE_W);
+	}
 }
 
 // --------------------------------------------------------------
@@ -324,9 +328,15 @@ page_init(void)
 	size_t kernel_used = PADDR(boot_alloc(0));
 	size_t i;
 	for (i = 1; i < npages; i++) {
-		if (PGNUM(IOPHYSMEM) <= i && i < PGNUM(kernel_used)) {
+		int used = false;
+		if (PGNUM(IOPHYSMEM) <= i && i < PGNUM(kernel_used))
+			used = true;
+		if (i == PGNUM(MPENTRY_PADDR))
+			used = true;
+		if (used) {
 			pages[i].pp_ref = 1;
 			// NOTE in my understanding, not free pages do not participate in the page_free_list, right?
+			// NOTE yes
 		} else {
 			pages[i].pp_ref = 0;
 			pages[i].pp_link = page_free_list;
@@ -593,7 +603,7 @@ mmio_map_region(physaddr_t pa, size_t size)
 	// safe to cache access to this memory.  Luckily, the page
 	// tables provide bits for this purpose; simply create the
 	// mapping with PTE_PCD|PTE_PWT (cache-disable and
-	// write-through) in addition to PTE_W.  (If you're interested
+	// write-through) in addition to PTE_W.  (If you're interested // NOTE I feel like PTE_W here should be PTE_P, we probably dont want user to have access to PIC
 	// in more details on this, see section 10.5 of IA32 volume
 	// 3A.)
 	//
@@ -604,7 +614,15 @@ mmio_map_region(physaddr_t pa, size_t size)
 	// Hint: The staff solution uses boot_map_region.
 	//
 	// Your code here:
-	panic("mmio_map_region not implemented");
+	
+	void *ret = (void *) base;
+
+	size = ROUNDUP(size, PGSIZE);
+	if (pa + size > MMIOLIM)
+		panic("mmio region exceeds limit");
+	boot_map_region(kern_pgdir, base, size, pa, PTE_P | PTE_PCD | PTE_PWT);
+	base += size;
+	return ret;
 }
 
 static uintptr_t user_mem_check_addr;

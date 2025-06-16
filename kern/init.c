@@ -26,7 +26,6 @@ i386_init(void)
 	cons_init();
 
 	cprintf("\n6828 decimal is %o octal!\n", 6828);
-	cprintf("%p %p\n", bootstacktop, end);
 
 	// Lab 2 memory management initialization functions
 	mem_init();
@@ -79,7 +78,7 @@ boot_aps(void)
 
 	// Boot each AP one at a time
 	for (c = cpus; c < cpus + ncpu; c++) {
-		if (c == cpus + cpunum())  // We've started already.
+		if (c == cpus + cpunum())  // We've started already. // NOTE this is current cpu, we don't need to setup again
 			continue;
 
 		// Tell mpentry.S what stack to use 
