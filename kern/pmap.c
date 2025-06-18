@@ -618,9 +618,9 @@ mmio_map_region(physaddr_t pa, size_t size)
 	void *ret = (void *) base;
 
 	size = ROUNDUP(size, PGSIZE);
-	if (pa + size > MMIOLIM)
-		panic("mmio region exceeds limit");
-	boot_map_region(kern_pgdir, base, size, pa, PTE_P | PTE_PCD | PTE_PWT);
+	if (base + size > MMIOLIM)
+		panic("mmio region exceeds limit: [%p, %p)", base, base + size);
+	boot_map_region(kern_pgdir, base, size, pa, PTE_P | PTE_W | PTE_PCD | PTE_PWT);
 	base += size;
 	return ret;
 }

@@ -21,6 +21,9 @@ static void boot_aps(void);
 void
 i386_init(void)
 {
+	// NOTE just to make things simple, and because of cs202, let's just lock/unlock at the start/end
+	lock_kernel();
+
 	// Initialize the console.
 	// Can't call cprintf until after we do this!
 	cons_init();
@@ -52,7 +55,10 @@ i386_init(void)
 	ENV_CREATE(TEST, ENV_TYPE_USER);
 #else
 	// Touch all you want.
-	ENV_CREATE(user_primes, ENV_TYPE_USER);
+	// ENV_CREATE(user_dumbfork, ENV_TYPE_USER);
+	ENV_CREATE(user_yield, ENV_TYPE_USER);
+	ENV_CREATE(user_yield, ENV_TYPE_USER);
+	ENV_CREATE(user_yield, ENV_TYPE_USER);
 #endif // TEST*
 
 	// Schedule and run the first user environment!
@@ -110,8 +116,11 @@ mp_main(void)
 	//
 	// Your code here:
 
-	// Remove this after you finish Exercise 6
-	for (;;);
+	// NOTE by locking this late,technically, here we violates the invariant that only one cpu is 
+	// NOTE in kernel mode. But its fine because in boot_aps each AP is started one by one 
+	// NOTE and BSP does not run until AP finish.
+	lock_kernel();
+	sched_yield();
 }
 
 /*

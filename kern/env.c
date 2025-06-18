@@ -546,9 +546,14 @@ env_run(struct Env *e)
 
 	if (curenv && curenv->env_status == ENV_RUNNING)
 		curenv->env_status = ENV_RUNNABLE;
+	// NOTE the current process could dying, because the current process can end
+	// NOTE it can also be free - if the processer halts and have nothing to do, the current process should be free
+	// NOTE what the curenv state could be is not super well defined at this stage of the implementation
+	// NOTE since the dying of envs is not yet written
 	curenv = e;
 	curenv->env_status = ENV_RUNNING;
 	curenv->env_runs++;
+	unlock_kernel();
 	lcr3(PADDR(curenv->env_pgdir));
 	env_pop_tf(&curenv->env_tf);
 }
