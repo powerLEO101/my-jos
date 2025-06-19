@@ -133,8 +133,13 @@ sys_env_set_status(envid_t envid, int status)
 static int
 sys_env_set_pgfault_upcall(envid_t envid, void *func)
 {
-	// LAB 4: Your code here.
-	panic("sys_env_set_pgfault_upcall not implemented");
+	int r;
+	struct Env *e;
+	
+	if ((r = envid2env(envid, &e, 1)) < 0)
+		return r;
+	e->env_pgfault_upcall = func;
+	return 0;
 }
 
 // Allocate a page of memory and map it at 'va' with permission
@@ -210,6 +215,8 @@ sys_page_map(envid_t srcenvid, void *srcva,
 	//   Use the third argument to page_lookup() to
 	//   check the current permissions on the page.
 
+	// NOTE the implementation of this says that whenever child call page_map on a page,
+	// NOTE the system falgs set by os will be gone, like PTE_PWT
 	int r;
 	pte_t *src_pte;
 	struct PageInfo *page;
@@ -350,6 +357,8 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 			return sys_page_map((envid_t) a1, (void *) a2, (envid_t) a3, (void *) a4, a5);
 		case SYS_page_unmap:
 			return sys_page_unmap((envid_t) a1, (void *) a2);
+		case SYS_env_set_pgfault_upcall:
+			return sys_env_set_pgfault_upcall((envid_t) a1, (void *) a2);
 		default:
 			return -E_INVAL;
 	}

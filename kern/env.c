@@ -301,7 +301,9 @@ region_alloc(struct Env *e, void *va, size_t len)
 	for (; len; len -= PGSIZE, va += PGSIZE) {
 		if (!(pp = page_alloc(0)))
 			panic("cannot allocate new page");
-		*pgdir_walk(e->env_pgdir, va, true) = page2pa(pp) | PTE_PWU;
+		page_insert(e->env_pgdir, pp, va, PTE_PWU);
+		// *pgdir_walk(e->env_pgdir, va, true) = page2pa(pp) | PTE_PWU;
+		// holy shit, this error took me 1 full day to find!!! no track n_ref
 	}
 }
 
