@@ -67,7 +67,6 @@ static const char *trapname(int trapno)
 
 
 extern void (*trap_handlers[]) ();
-extern void T_SYSCALL_HANDLER();
 
 void
 trap_init(void)
@@ -76,15 +75,13 @@ trap_init(void)
 
 	// LAB 3: Your code here.
 
-	// NOTE so far there are only 20 handlers predefined
-	for (int i = 0; i < 20; i++) {
-		if (i == 3) {
+	for (int i = 0; i <= 48; i++) {
+		if (i == T_BRKPT || i == T_SYSCALL) {
 			SETGATE(idt[i], 0, GD_KT, trap_handlers[i], 3);
 		} else {
 			SETGATE(idt[i], 0, GD_KT, trap_handlers[i], 0);
 		}
 	}
-	SETGATE(idt[T_SYSCALL], 1, GD_KT, T_SYSCALL_HANDLER, 3);
 
 	// Per-CPU setup 
 	trap_init_percpu();
@@ -223,6 +220,14 @@ trap_dispatch(struct Trapframe *tf)
 					tf->tf_regs.reg_edi, 
 					tf->tf_regs.reg_esi);
 			return;
+		case IRQ_OFFSET + IRQ_TIMER:
+			// cprintf("timer interrupt from cpu%d\n", cpunum());
+			lapic_eoi();
+			sched_yield();
+		case IRQ_OFFSET + IRQ_KBD:
+			// cprintf("keyborad interrupt from cpu%d\n", cpunum());
+			lapic_eoi();
+			sched_yield();
 	}
 	//
 	// Unexpected trap: The user process or the kernel has a bug.
