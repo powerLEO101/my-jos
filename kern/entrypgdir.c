@@ -24,7 +24,10 @@ pde_t entry_pgdir[NPDENTRIES] = {
 		= ((uintptr_t)entry_pgtable - KERNBASE) + PTE_P,
 	// Map VA's [KERNBASE, KERNBASE+4MB) to PA's [0, 4MB)
 	[KERNBASE>>PDXSHIFT]
-		= ((uintptr_t)entry_pgtable - KERNBASE) + PTE_P + PTE_W
+		= ((uintptr_t)entry_pgtable - KERNBASE) + PTE_P + PTE_W,
+	[(KERNBASE>>PDXSHIFT) + 1]
+		= 0x400000 | PTE_P | PTE_W | PTE_PS
+	// NOTE need to emergency fix something here for lab5, the early boot 4MB is not enough because we got too many user programs
 };
 
 // Entry 0 of the page table maps to physical page 0, entry 1 to

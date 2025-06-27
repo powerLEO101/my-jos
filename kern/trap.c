@@ -228,9 +228,13 @@ trap_dispatch(struct Trapframe *tf)
 			lapic_eoi();
 			sched_yield();
 		case IRQ_OFFSET + IRQ_KBD:
-			// cprintf("keyborad interrupt from cpu%d\n", cpunum());
 			lapic_eoi();
-			sched_yield();
+			kbd_intr();
+			return;
+		case IRQ_OFFSET + IRQ_SERIAL:
+			lapic_eoi();
+			serial_intr();
+			return;
 	}
 
 	// Unexpected trap: The user process or the kernel has a bug.

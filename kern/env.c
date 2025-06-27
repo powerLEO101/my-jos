@@ -298,7 +298,7 @@ region_alloc(struct Env *e, void *va, size_t len)
 	// NOTE corner case: va, len are already aligned? TODO double check this
 	struct PageInfo *pp;
 	len = ROUNDUP(len + (uint32_t) va % PGSIZE, PGSIZE);
-	va = (void *) ((uint32_t) va & ~PGSIZE);
+	va = (void *) ((uint32_t) va & ~(PGSIZE - 1));
 	for (; len; len -= PGSIZE, va += PGSIZE) {
 		if (!(pp = page_alloc(0)))
 			panic("cannot allocate new page");
@@ -408,16 +408,19 @@ load_icode(struct Env *e, uint8_t *binary)
 void
 env_create(uint8_t *binary, enum EnvType type)
 {
-	// LAB 3: Your code here.
-
 	// If this is the file server (type == ENV_TYPE_FS) give it I/O privileges.
 	// LAB 5: Your code here.
 	
+	// LAB 3: Your code here.
+	//
 	int r;
 	struct Env *e;
 	if ((r = env_alloc(&e, 0)) < 0)
 		panic("cannot create first env: %e", r);
 	e->env_type = type;
+	if (type == ENV_TYPE_FS)
+		e->env_tf.tf_eflags = (e->env_tf.tf_eflags & ~FL_IOPL_MASK) | FL_IOPL_3;
+	// NOTE the higher, the more privileged
 	load_icode(e, binary);
 }
 

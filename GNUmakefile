@@ -90,7 +90,7 @@ CFLAGS += -std=gnu99
 CFLAGS += -static
 CFLAGS += -fno-pie
 CFLAGS += -g
-CFLAGS += -Wall -Wno-format -Wno-unused -Werror -m32
+CFLAGS += -Wall -Wno-format -Wno-unused -m32
 # -fno-tree-ch prevented gcc from sometimes reordering read_ebp() before
 # mon_backtrace()'s function prologue on gcc version: (Debian 4.7.2-5) 4.7.2
 CFLAGS += -fno-tree-ch

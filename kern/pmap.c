@@ -110,10 +110,11 @@ boot_alloc(uint32_t n)
 	//
 	// LAB 2: Your code here.
 	
+	cprintf("%p %x\n", nextfree, n);
 	// NOTE only 4 MB of memory is mapped for kernel to use
 	// the constraint of 4 MB is hard coded here
 	// NOTE this part of the code lacks a lot of check, but since its kernel itself calling I assume everyone is good
-	if ((void *) ROUNDUP(nextfree + n, PGSIZE) > KADDR(0x400000))
+	if ((void *) ROUNDUP(nextfree + n, PGSIZE) > KADDR(0x800000))
 		panic("boot_alloc: out of memory");
 
 	result = nextfree;

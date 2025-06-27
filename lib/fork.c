@@ -17,6 +17,9 @@ pgfault(struct UTrapframe *utf)
 	void *addr = (void *) ROUNDDOWN(utf->utf_fault_va, PGSIZE);
 	uint32_t err = utf->utf_err;
 	int perm = uvpt[(uintptr_t) addr >> 12] & PTE_SYSCALL;
+	// NOTE TODO note that the uvpt refernce itself here can cause another page fault:
+	// NOTE is an entire page dir entry is unmapped, then uvpt will also be unmapped (uvpd will be mapped)
+	// NOTE in next nested page fault, we will finally panic because fault type is a READ
 	int r;
 
 	// Check that the faulting access was (1) a write, and (2) to a
@@ -36,10 +39,10 @@ pgfault(struct UTrapframe *utf)
 	// LAB 4: Your code here.
 
 	if (!(err & FEC_WR))
-		panic("pgfault is not write");
+		panic("pgfault is not write: %p %p", addr, utf->utf_eip);
 	if (!(perm & PTE_COW))
 		// TODO double check this using gdb, is the page table refernce correct?
-		panic("page is not copy on write");
+		panic("page is not copy on write: %p", addr);
 	if ((r = sys_page_alloc(0, PFTEMP, perm ^ (PTE_W | PTE_COW))) < 0)
 		panic("page alloc failed: %e", r);
 	memmove((void *) PFTEMP, addr, PGSIZE);
@@ -55,7 +58,12 @@ pgfault(struct UTrapframe *utf)
 // the new mapping must be created copy-on-write, and then our mapping must be
 // marked copy-on-write as well.  (Exercise: Why do we need to mark ours
 // copy-on-write again if it was already copy-on-write at the beginning of
-// this function? Answer: I don't know the answer to this question TODO figure out)
+// this function? Answer: This and another exercise question in the web page. 
+// If we are mapping the stack, and we are also using the stack (we are in user space),
+// our copy-on-write mark on the parent might be gone in the middle of duppage. So,
+// we also need to care about the order: if parent map first, instead of child, then
+// child can copy the mapping of a page from parent that parent actively uses and does
+// not mark as copy-on-write. Bad!)
 //
 // Returns: 0 on success, < 0 on error.
 // It is also OK to panic on error.
@@ -70,7 +78,8 @@ duppage(envid_t envid, unsigned pn)
 	// NOTE we are still in user space here. we are not even in the user exception stack
 	// NOTE I searched through many online solutions, some answered the exercise question above
 	// NOTE but no one seems to get it right. 
-	if (perm & (PTE_W | PTE_COW))
+	// NOTE modifition of this code in lab5
+	if (!(perm & PTE_SHARE) && perm & (PTE_W | PTE_COW))
 		perm = (perm & ~PTE_W) | PTE_COW;
 	if ((r = sys_page_map(0, (void *) (pn * PGSIZE), envid, (void *) (pn * PGSIZE), perm)) < 0)
 		panic("cannot map child page: %e", r);
