@@ -64,6 +64,8 @@ protcseg:
   movw    %ax, %gs                # -> GS
   movw    %ax, %ss                # -> SS: Stack Segment
   
+	movl $0x01, %eax
+	cpuid
   # Set up the stack pointer and call into C.
   movl    $start, %esp
   call bootmain

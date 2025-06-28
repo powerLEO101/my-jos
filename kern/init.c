@@ -23,11 +23,14 @@ static void boot_aps(void);
 void
 i386_init(void)
 {
+	// NOTE just to make things simple, and because of cs202, let's just lock/unlock at the start/end
+	lock_kernel();
+
 	// Initialize the console.
 	// Can't call cprintf until after we do this!
 	cons_init();
 
-	cprintf("6828 decimal is %o octal!\n", 6828);
+	cprintf("\n6828 decimal is %o octal!\n", 6828);
 
 	// Lab 2 memory management initialization functions
 	mem_init();
@@ -95,7 +98,7 @@ boot_aps(void)
 
 	// Boot each AP one at a time
 	for (c = cpus; c < cpus + ncpu; c++) {
-		if (c == cpus + cpunum())  // We've started already.
+		if (c == cpus + cpunum())  // We've started already. // NOTE this is current cpu, we don't need to setup again
 			continue;
 
 		// Tell mpentry.S what stack to use 
@@ -127,8 +130,11 @@ mp_main(void)
 	//
 	// Your code here:
 
-	// Remove this after you finish Exercise 6
-	for (;;);
+	// NOTE by locking this late,technically, here we violates the invariant that only one cpu is 
+	// NOTE in kernel mode. But its fine because in boot_aps each AP is started one by one 
+	// NOTE and BSP does not run until AP finish.
+	lock_kernel();
+	sched_yield();
 }
 
 /*
