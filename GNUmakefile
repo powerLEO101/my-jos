@@ -152,6 +152,7 @@ include net/Makefrag
 
 CPUS ?= 1
 
+HOSTADDR := 127.0.0.1
 PORT7	:= $(shell expr $(GDBPORT) + 1)
 PORT80	:= $(shell expr $(GDBPORT) + 2)
 
@@ -160,8 +161,10 @@ QEMUOPTS += $(shell if $(QEMU) -nographic -help | grep -q '^-D '; then echo '-D 
 IMAGES = $(OBJDIR)/kern/kernel.img
 QEMUOPTS += -drive file=$(OBJDIR)/fs/fs.img,index=1,media=disk,format=raw
 IMAGES += $(OBJDIR)/fs/fs.img
-QEMUOPTS += -net user -net nic,model=e1000 -redir tcp:$(PORT7)::7 \
-	   -redir tcp:$(PORT80)::80 -redir udp:$(PORT7)::7 -net dump,file=qemu.pcap
+# QEMUOPTS += -net user,hostfwd=tcp:127.0.0.1:$(PORT80)-:80 -net nic,model=e1000 \
+# 	-net user,hostfwd=udp:127.0.0.1:$(PORT7)-:7 -net user,hostfwd=tcp:127.0.0.1:$(PORT7)-:7 -object filter-dump,file=qemu.pcap
+QEMUOPTS += -nic user,id=n1,model=e1000,hostfwd=tcp:$(HOSTADDR):$(PORT80)-:80,hostfwd=udp:$(HOSTADDR):$(PORT7)-:7,hostfwd=tcp:$(HOSTADDR):$(PORT7)-:7
+QEMUOPTS += -object filter-dump,file=qemu.pcap,id=f1,netdev=n1
 QEMUOPTS += -smp cores=1,threads=1,sockets=$(CPUS)
 QEMUOPTS += $(QEMUEXTRA)
 

@@ -7,7 +7,7 @@
 
 // Flag to do "lspci" at bootup
 static int pci_show_devs = 1;
-static int pci_show_addrs = 0;
+static int pci_show_addrs = 1;
 
 // PCI "configuration mechanism one"
 static uint32_t pci_conf1_addr_ioport = 0x0cf8;
@@ -31,6 +31,7 @@ struct pci_driver pci_attach_class[] = {
 // pci_attach_vendor matches the vendor ID and device ID of a PCI device. key1
 // and key2 should be the vendor ID and device ID respectively
 struct pci_driver pci_attach_vendor[] = {
+	{ E1000_VENDORID, E1000_DEVICEID, e1000_init },
 	{ 0, 0, 0 },
 };
 
@@ -251,7 +252,7 @@ int
 pci_init(void)
 {
 	static struct pci_bus root_bus;
-	memset(&root_bus, 0, sizeof(root_bus));
+	memset(&root_bus, 0, sizeof(root_bus)); // NOTE sus? I thought static variables are auto cleared
 
 	return pci_scan_bus(&root_bus);
 }
